@@ -4,9 +4,11 @@ FROM buildpack-deps:jessie
 ENV NGINX_VERSION nginx-1.11.3
 ENV NGINX_RTMP_MODULE_VERSION 1.1.9
 
+
+
 # Install dependencies
 RUN apt-get update && \
-    apt-get install -y ca-certificates openssl libssl-dev && \
+    apt-get install -y ca-certificates openssl libssl-dev unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and decompress Nginx
@@ -21,6 +23,12 @@ RUN mkdir -p /tmp/build/nginx-rtmp-module && \
     wget -O nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
     tar -zxf nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
     cd nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}
+
+# Dowload the MPEG-TS Live Module
+RUN mkdir /tmp/mpeg
+ADD https://github.com/arut/nginx-ts-module/archive/master.zip  /tmp/mpeg
+# Unzips the MPEG module...
+RUN unzip /tmp/mpeg/master.zip -d /tmp/mpeg
 
 # Build and install Nginx
 # The default puts everything under /usr/local/nginx, so it's needed to change
@@ -38,6 +46,7 @@ RUN cd /tmp/build/nginx/${NGINX_VERSION} && \
         --with-threads \
         --with-ipv6 \
         --add-module=/tmp/build/nginx-rtmp-module/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION} && \
+        --add-module=/tmp/mpeg/master \
     make -j $(getconf _NPROCESSORS_ONLN) && \
     make install && \
     mkdir /var/lock/nginx && \
